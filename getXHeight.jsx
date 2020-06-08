@@ -2,19 +2,34 @@
 
 /*
 	
-		+ Adobe InDesign Version: CS6+
-		+ Autor: Roland Dreger
-		+ Datum: 9. Mai 2015
+		+	Adobe InDesign Version: CS6+
+		+	Autor: Roland Dreger
+		+	Datum: 9. Mai 2015
 		
-		+ Zuletzt aktualisiert: 23. April 2020
-		 
-		+ Freies Script fuer private und kommerzielle Nutzung 
-			(Creativ Commons Lizenz: Roland Dreger, CC BY 3.0 AT).
-		+ Verwendung auf eigene Gefahr.
+		+	Zuletzt aktualisiert: 23. April 2020
 		
-		+ Free Script for private and commercial use 
-			(Creativ Commons Licence: Roland Dreger, CC BY 3.0 AT).
-		+ Use at your own risk.
+
+		+	License (MIT)
+
+			Copyright 2020 Roland Dreger
+
+			Permission is hereby granted, free of charge, to any person obtaining 
+			a copy of this software and associated documentation files (the "Software"), 
+			to deal in the Software without restriction, including without limitation 
+			the rights to use, copy, modify, merge, publish, distribute, sublicense, 
+			and/or sell copies of the Software, and to permit persons to whom the 
+			Software is furnished to do so, subject to the following conditions:
+
+			The above copyright notice and this permission notice shall be included 
+			in all copies or substantial portions of the Software.
+
+			THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS 
+			OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+			FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
+			THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
+			LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
+			FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+			DEALINGS IN THE SOFTWARE.
 		
 */
 
