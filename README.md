@@ -2,7 +2,7 @@
 
 With this script for Adobe InDesign you can determine the x-height of a text passage.
 
-##Script usage
+## Script usage
 
 To measure the x-height, mark the relevant text passage in the layout of your InDesign document and click on the »Measure« button. The determined value is displayed in the script panel.
 
