@@ -6,12 +6,12 @@
 		+	Autor: Roland Dreger
 		+	Datum: 9. Mai 2015
 		
-		+	Zuletzt aktualisiert: 23. April 2020
+		+	Zuletzt aktualisiert: 6. August 2021
 		
 
 		+	License (MIT)
 
-			Copyright 2020 Roland Dreger
+			Copyright 2021 Roland Dreger
 
 			Permission is hereby granted, free of charge, to any person obtaining 
 			a copy of this software and associated documentation files (the "Software"), 
@@ -148,19 +148,16 @@ function __measureXHeight(_ui, _xHeightValue, _warningIcon) {
 	var _doc;
 	var _selection;
 	var _targetIP;
-	var _appliedFont;
-	var _pointSize;
-	var _verticalScale;
-	var _tempTextFrame;
-	var _tempStory;
-	var _xChar;
-	var _xPath;
-	var _anchorPointTopLeft;
-	var _anchorPointBottomLeft;
+	var _targetIPFont;
+	var _targetIPPointSize;
+	var _targetIPVerticalScale;
 	var _xHeight = 0;
 	var _xHeigthMM;
 	var _xHeigthPT;
 
+	if(app.documents.length === 0 || app.layoutWindows.length === 0) {
+		return false; 
+	}
 
 	_doc = app.documents.firstItem();
 	if(!_doc.isValid) {
@@ -179,66 +176,25 @@ function __measureXHeight(_ui, _xHeightValue, _warningIcon) {
 		_targetIP = _selection.insertionPoints[0];
 	}
 
-	_tempTextFrame = __createTextFrame(_doc);
-	if(!_tempTextFrame) { 
-		return false; 
-	}
+	_targetIPFont = _targetIP.appliedFont;
+	_targetIPPointSize = _targetIP.pointSize;
+	_targetIPVerticalScale = _targetIP.verticalScale;
 
-	_tempStory = _tempTextFrame.parentStory;
-	_tempStory.insertionPoints[0].alignToBaseline = false;
-	_tempStory.appliedParagraphStyle = _doc.paragraphStyles[0];
-	_tempStory.appliedCharacterStyle = _doc.characterStyles[0];
-	_tempStory.insertionPoints[0].contents = "x";
-	
-	_xChar = _tempStory.characters.item(0);
-	
-	_appliedFont = _targetIP.appliedFont;
-	_pointSize = _targetIP.pointSize;
-	_verticalScale = _targetIP.verticalScale;
-	
-	if(!_xChar.isValid || !_appliedFont || !_appliedFont.isValid) {
-		_tempTextFrame.remove();
+	_xHeight = app.doScript(
+		__getXHeight, 
+		ScriptLanguage.JAVASCRIPT, 
+		[_doc.toSpecifier(), _targetIPFont.toSpecifier(), _targetIPPointSize, _targetIPVerticalScale], 
+		UndoModes.ENTIRE_SCRIPT, 
+		localize(_global.measureGoBackLabel)
+	);
+	if(!_xHeight) {
 		__displayErrorLabel(_ui, _xHeightValue);
 		return false;
 	}
 
-	_xChar.appliedFont = _appliedFont;
-	_xChar.pointSize = _pointSize;
-	_xChar.verticalScale = _verticalScale;
+	_ui.text = _targetIPFont.name.replace("\\t", " | ", "g");
+	_ui.text += " | " + _targetIPPointSize.toFixed(1).replace("\\.0", "", "g") + " pt";
 	
-	__clearOverset(_tempTextFrame);	
-	
-	if((_tempTextFrame.contents === "") || __containsMissingGlyph(_appliedFont, _tempTextFrame) || _xChar.endHorizontalOffset === 0) {
-		_tempTextFrame.remove();
-		__displayErrorLabel(_ui, _xHeightValue);
-		return false;
-	}
-	
-	/* Convert x to Outlines for measuring */
-	try {
-		_xPath = _xChar.createOutlines()[0];
-	} catch(_error) {
-		_xPath = undefined;
-	}
-	
-	if(!_xPath || !_xPath.isValid) {
-		_tempTextFrame.remove();
-		__displayErrorLabel(_ui, _xHeightValue);
-		return false;
-	}
-	
-	__clearOverset(_tempTextFrame);
-	
-	_anchorPointTopLeft = _xPath.resolve(AnchorPoint.topLeftAnchor, CoordinateSpaces.parentCoordinates)[0];
-	_anchorPointBottomLeft = _xPath.resolve(AnchorPoint.bottomLeftAnchor, CoordinateSpaces.parentCoordinates)[0];
-	
-	_tempTextFrame.remove();
-	
-	_ui.text = _appliedFont.name.replace("\\t", " | ", "g");
-	_ui.text += " | " + _pointSize.toFixed(1).replace("\\.0", "", "g") + " pt";
-	
-	/* Calculate x-height */
-	_xHeight = Math.abs(_anchorPointBottomLeft[1] - _anchorPointTopLeft[1]);
 	_xHeigthPT = _xHeight.toFixed(2).replace("0+$", "", "g") + " pt";
 	_xHeigthMM = UnitValue(_xHeight, MeasurementUnits.POINTS).as(MeasurementUnits.MILLIMETERS);
 	_xHeigthMM = _xHeigthMM.toFixed(3).replace("[,.]?0+$", "", "g") + " mm";
@@ -254,7 +210,7 @@ function __measureXHeight(_ui, _xHeightValue, _warningIcon) {
 	_warningIcon.helpTip = "";
 
 	/* Check: Font installed? */
-	if(!__isFontInstalled(_appliedFont)) { 
+	if(!__isFontInstalled(_targetIPFont)) { 
 		_warningIcon.visible = true;
 		_warningIcon.helpTip = localize(_global.substituteFontHelpTip);
 	} 
@@ -272,18 +228,130 @@ function __measureXHeight(_ui, _xHeightValue, _warningIcon) {
 } /* END function __measureXHeight */
 
 
+function __getXHeight(_argArray) {
+
+	if(!_argArray || !(_argArray instanceof Array) || _argArray.length !== 4) { return false; }
+
+	var _doc;
+	var _targetIPFont; 
+	var _targetIPPointSize; 
+	var _targetIPVerticalScale;
+	var _appliedFont;
+	var _pointSize;
+	var _verticalScale;
+	var _tempTextFrame;
+	var _tempStory;
+	var _xChar;
+	var _xPath;
+	var _anchorPointTopLeft;
+	var _anchorPointBottomLeft;
+	var _xHeight;
+
+	try {
+
+		_doc = resolve(_argArray[0]);
+		_targetIPFont = resolve(_argArray[1]); 
+		_targetIPPointSize = _argArray[2]; 
+		_targetIPVerticalScale = _argArray[3];
+
+		_tempTextFrame = __createTextFrame(_doc);
+		if(!_tempTextFrame) { 
+			return false; 
+		}
+
+		_tempStory = _tempTextFrame.parentStory;
+		_tempStory.insertionPoints[0].alignToBaseline = false;
+		_tempStory.appliedParagraphStyle = _doc.paragraphStyles[0];
+		_tempStory.appliedCharacterStyle = _doc.characterStyles[0];
+		_tempStory.clearOverrides(OverrideType.ALL);
+		_tempStory.insertionPoints[0].contents = "x";
+		
+		_xChar = _tempStory.characters.item(0);
+		
+		_appliedFont = _targetIPFont;
+		_pointSize = _targetIPPointSize;
+		_verticalScale = _targetIPVerticalScale;
+		
+		if(!_xChar.isValid || !_appliedFont || !_appliedFont.isValid) {
+			return false;
+		}
+
+		_xChar.appliedFont = _appliedFont;
+		_xChar.pointSize = _pointSize;
+		_xChar.verticalScale = _verticalScale;
+		
+		__clearOverset(_tempTextFrame);	
+		
+		if((_tempTextFrame.contents === "") || __containsMissingGlyph(_appliedFont, _tempTextFrame) || _xChar.endHorizontalOffset === 0) {
+			return false;
+		}
+		
+		/* Convert x to Outlines for measuring */
+		try {
+			_xPath = _xChar.createOutlines()[0];
+		} catch(_error) {
+			_xPath = undefined;
+		}
+		
+		if(!_xPath || !_xPath.isValid) {
+			return false;
+		}
+		
+		__clearOverset(_tempTextFrame);
+		
+		_anchorPointTopLeft = _xPath.resolve(AnchorPoint.topLeftAnchor, CoordinateSpaces.parentCoordinates)[0];
+		_anchorPointBottomLeft = _xPath.resolve(AnchorPoint.bottomLeftAnchor, CoordinateSpaces.parentCoordinates)[0];
+		
+		/* Calculate x-height */
+		_xHeight = Math.abs(_anchorPointBottomLeft[1] - _anchorPointTopLeft[1]);
+		
+	} catch(_error) {
+		alert(_error.message);
+		return false;
+	} finally {
+		if(_tempTextFrame && _tempTextFrame.hasOwnProperty("remove") && _tempTextFrame.isValid) {
+			_tempTextFrame.remove();
+		}
+	}
+	
+	return _xHeight;
+} /* END function __getXHeight */
+
+
 
 /* +++++++++++++++++++++++ */
 /* + Copy x-height value + */
 /* +++++++++++++++++++++++ */
-function __copyXHeightValue(_xHeightValue) {
+function __copyXHeightValue(_xHeightStatictext) {
 	
-	if(!_xHeightValue || !(_xHeightValue instanceof StaticText)) { return false; }
-	
+	if(!_xHeightStatictext || !(_xHeightStatictext instanceof StaticText)) { return false; }
+
+	var _xHeightValue = _xHeightStatictext.text.replace("(mm).+$","$1","i");
+
+	app.doScript(
+		__pushValueToClipboard, 
+		ScriptLanguage.JAVASCRIPT, 
+		[_xHeightValue], 
+		UndoModes.ENTIRE_SCRIPT, 
+		localize(_global.copyGoBackLabel)
+	);
+
+	return true;
+} /* END function __copyXHeightValue */
+
+function __pushValueToClipboard(_argArray) {
+
+	if(!_argArray || !(_argArray instanceof Array) || _argArray.length !== 1) { return false; }
+
 	var _doc;
 	var _tempTextFrame;
 	var _tempStory;
 	var _texts;
+	var _xHeightValue;
+
+	if(app.documents.length === 0 || app.layoutWindows.length === 0) {
+		return false; 
+	}
 
 	_doc = app.documents.firstItem();
 	if(!_doc.isValid) {
@@ -294,24 +362,27 @@ function __copyXHeightValue(_xHeightValue) {
 	if(!_tempTextFrame) { 
 		return false; 
 	}
+
+	_xHeightValue = _argArray[0];
 	
 	try {
 		_tempStory = _tempTextFrame.parentStory;
 		_tempStory.insertionPoints[0].alignToBaseline = false;
-		_tempStory.insertionPoints[0].contents = _xHeightValue.text.replace("(mm).+$","$1","i");
+		_tempStory.insertionPoints[0].contents = _xHeightValue;
 		_texts = _tempStory.texts.everyItem();
 		_doc.select(_texts);
 		app.copy();
 	} catch(_error) {
 		alert(_error.message);
+		return false;
 	} finally {
 		if(_tempTextFrame && _tempTextFrame.hasOwnProperty("remove") && _tempTextFrame.isValid) {
 			_tempTextFrame.remove();
 		}
 	}
-	
+
 	return true;
-} /* END function __copyXHeightValue */
+} /* END function __pushValueToClipboard */
 
 
 function __displayErrorLabel(_ui, _xHeightValue) {
@@ -507,6 +578,16 @@ function __defineLocalizeStrings() {
 	_global.uiHeadLabel = {
 		en:"Get x-Height (v 2.0)",
 		de:"Get X-Height (v 2.0)"
+	};
+	
+	_global.measureGoBackLabel = { 
+		en:"Measure x-height",
+		de:"x-Höhe messen" 
+	};
+	
+	_global.copyGoBackLabel = { 
+		en:"Copy x-height",
+		de:"x-Höhe kopieren" 
 	};
 	
 	_global.measureLabel = {
