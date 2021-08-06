@@ -186,6 +186,8 @@ function __measureXHeight(_ui, _xHeightValue, _warningIcon) {
 
 	_tempStory = _tempTextFrame.parentStory;
 	_tempStory.insertionPoints[0].alignToBaseline = false;
+	_tempStory.appliedParagraphStyle = _doc.paragraphStyles[0];
+	_tempStory.appliedCharacterStyle = _doc.characterStyles[0];
 	_tempStory.insertionPoints[0].contents = "x";
 	
 	_xChar = _tempStory.characters.item(0);
