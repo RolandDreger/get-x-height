@@ -150,10 +150,10 @@ function __measureXHeight(_ui, _xHeightValue, _warningIcon) {
 	var _targetIP;
 	var _targetIPFont;
 	var _targetIPPointSize;
-	var _targetIPVerticalScale;
 	var _xHeight = 0;
 	var _xHeigthMM;
 	var _xHeigthPT;
+	var _argArray = [];
 
 	if(app.documents.length === 0 || app.layoutWindows.length === 0) {
 		return false; 
@@ -175,22 +175,16 @@ function __measureXHeight(_ui, _xHeightValue, _warningIcon) {
 	} else {
 		_targetIP = _selection.insertionPoints[0];
 	}
-
-	_targetIPFont = _targetIP.appliedFont;
-	_targetIPPointSize = _targetIP.pointSize;
-	_targetIPVerticalScale = _targetIP.verticalScale;
-
-	_xHeight = app.doScript(
-		__getXHeight, 
-		ScriptLanguage.JAVASCRIPT, 
-		[_doc.toSpecifier(), _targetIPFont.toSpecifier(), _targetIPPointSize, _targetIPVerticalScale], 
-		UndoModes.ENTIRE_SCRIPT, 
-		localize(_global.measureGoBackLabel)
-	);
+	
+	_argArray = [_doc.toSpecifier(), _targetIP.toSpecifier()];
+	_xHeight = app.doScript(__getXHeight, ScriptLanguage.JAVASCRIPT, _argArray, UndoModes.ENTIRE_SCRIPT, localize(_global.measureGoBackLabel));
 	if(!_xHeight) {
 		__displayErrorLabel(_ui, _xHeightValue);
 		return false;
 	}
+
+	_targetIPFont = _targetIP.properties.appliedFont;
+	_targetIPPointSize = _targetIP.properties.pointSize;
 
 	_ui.text = _targetIPFont.name.replace("\\t", " | ", "g");
 	_ui.text += " | " + _targetIPPointSize.toFixed(1).replace("\\.0", "", "g") + " pt";
@@ -230,12 +224,11 @@ function __measureXHeight(_ui, _xHeightValue, _warningIcon) {
 
 function __getXHeight(_argArray) {
 
-	if(!_argArray || !(_argArray instanceof Array) || _argArray.length !== 4) { return false; }
+	if(!_argArray || !(_argArray instanceof Array) || _argArray.length !== 2) { return false; }
 
 	var _doc;
+	var _targetIP;
 	var _appliedFont;
-	var _pointSize;
-	var _verticalScale;
 	var _tempTextFrame;
 	var _tempStory;
 	var _xChar;
@@ -247,9 +240,7 @@ function __getXHeight(_argArray) {
 	try {
 
 		_doc = resolve(_argArray[0]);
-		_appliedFont = resolve(_argArray[1]); 
-		_pointSize = _argArray[2]; 
-		_verticalScale = _argArray[3];
+		_targetIP = resolve(_argArray[1]);
 
 		_tempTextFrame = __createTextFrame(_doc);
 		if(!_tempTextFrame) { 
@@ -257,20 +248,16 @@ function __getXHeight(_argArray) {
 		}
 
 		_tempStory = _tempTextFrame.parentStory;
-		_tempStory.insertionPoints[0].alignToBaseline = false;
-		_tempStory.appliedParagraphStyle = _doc.paragraphStyles[0];
-		_tempStory.appliedCharacterStyle = _doc.characterStyles[0];
 		_tempStory.clearOverrides(OverrideType.ALL);
+		_tempStory.insertionPoints[0].properties = _targetIP.properties;
+		_tempStory.insertionPoints[0].alignToBaseline = false;
 		_tempStory.insertionPoints[0].contents = "x";
 		
 		_xChar = _tempStory.characters.item(0);
 
-		_xChar.appliedFont = _appliedFont;
-		_xChar.pointSize = _pointSize;
-		_xChar.verticalScale = _verticalScale;
-		
 		__clearOverset(_tempTextFrame);	
 		
+		_appliedFont = _targetIP.properties.appliedFont;
 		if((_tempTextFrame.contents === "") || __containsMissingGlyph(_appliedFont, _tempTextFrame) || _xChar.endHorizontalOffset === 0) {
 			return false;
 		}
