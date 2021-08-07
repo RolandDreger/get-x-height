@@ -6,7 +6,7 @@
 		+	Autor: Roland Dreger
 		+	Datum: 9. Mai 2015
 		
-		+	Zuletzt aktualisiert: 6. August 2021
+		+	Zuletzt aktualisiert: 7. August 2021
 		
 
 		+	License (MIT)
@@ -233,9 +233,6 @@ function __getXHeight(_argArray) {
 	if(!_argArray || !(_argArray instanceof Array) || _argArray.length !== 4) { return false; }
 
 	var _doc;
-	var _targetIPFont; 
-	var _targetIPPointSize; 
-	var _targetIPVerticalScale;
 	var _appliedFont;
 	var _pointSize;
 	var _verticalScale;
@@ -250,9 +247,9 @@ function __getXHeight(_argArray) {
 	try {
 
 		_doc = resolve(_argArray[0]);
-		_targetIPFont = resolve(_argArray[1]); 
-		_targetIPPointSize = _argArray[2]; 
-		_targetIPVerticalScale = _argArray[3];
+		_appliedFont = resolve(_argArray[1]); 
+		_pointSize = _argArray[2]; 
+		_verticalScale = _argArray[3];
 
 		_tempTextFrame = __createTextFrame(_doc);
 		if(!_tempTextFrame) { 
@@ -267,14 +264,6 @@ function __getXHeight(_argArray) {
 		_tempStory.insertionPoints[0].contents = "x";
 		
 		_xChar = _tempStory.characters.item(0);
-		
-		_appliedFont = _targetIPFont;
-		_pointSize = _targetIPPointSize;
-		_verticalScale = _targetIPVerticalScale;
-		
-		if(!_xChar.isValid || !_appliedFont || !_appliedFont.isValid) {
-			return false;
-		}
 
 		_xChar.appliedFont = _appliedFont;
 		_xChar.pointSize = _pointSize;
@@ -287,15 +276,7 @@ function __getXHeight(_argArray) {
 		}
 		
 		/* Convert x to Outlines for measuring */
-		try {
-			_xPath = _xChar.createOutlines()[0];
-		} catch(_error) {
-			_xPath = undefined;
-		}
-		
-		if(!_xPath || !_xPath.isValid) {
-			return false;
-		}
+		_xPath = _xChar.createOutlines()[0];
 		
 		__clearOverset(_tempTextFrame);
 		
@@ -576,8 +557,8 @@ function __defineIconsForUI() {
 function __defineLocalizeStrings() {
 	
 	_global.uiHeadLabel = {
-		en:"Get x-Height (v 2.0)",
-		de:"Get X-Height (v 2.0)"
+		en:"Get x-Height (v 2.1)",
+		de:"Get X-Height (v 2.1)"
 	};
 	
 	_global.measureGoBackLabel = { 
