@@ -255,7 +255,7 @@ function __getXHeight(_argArray) {
 		
 		_xChar = _tempStory.characters.item(0);
 
-		__clearOverset(_tempTextFrame);	
+		__clearOverflow(_tempTextFrame);	
 		
 		_appliedFont = _targetIP.properties.appliedFont;
 		if((_tempTextFrame.contents === "") || __containsMissingGlyph(_appliedFont, _tempTextFrame) || _xChar.endHorizontalOffset === 0) {
@@ -265,7 +265,7 @@ function __getXHeight(_argArray) {
 		/* Convert x to Outlines for measuring */
 		_xPath = _xChar.createOutlines()[0];
 		
-		__clearOverset(_tempTextFrame);
+		__clearOverflow(_tempTextFrame);
 		
 		_anchorPointTopLeft = _xPath.resolve(AnchorPoint.topLeftAnchor, CoordinateSpaces.parentCoordinates)[0];
 		_anchorPointBottomLeft = _xPath.resolve(AnchorPoint.bottomLeftAnchor, CoordinateSpaces.parentCoordinates)[0];
@@ -450,7 +450,7 @@ function __containsMissingGlyph(_font, _frame) {
 } /* END function __containsMissingGlyph */
 
 
-function __clearOverset(_textFrame) {
+function __clearOverflow(_textFrame) {
 	
 	if(!_textFrame || !(_textFrame instanceof TextFrame) || !_textFrame.isValid) { return false; }
 
@@ -466,7 +466,7 @@ function __clearOverset(_textFrame) {
 	} 
 
 	return true;
-} /* END function __clearOverset */
+} /* END function __clearOverflow */
 
 
 function __isFontInstalled(_font) {
