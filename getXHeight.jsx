@@ -6,7 +6,7 @@
 		+	Autor: Roland Dreger
 		+	Datum: 9. Mai 2015
 		
-		+	Zuletzt aktualisiert: 7. August 2021
+		+	Zuletzt aktualisiert: 17. August 2021
 		
 
 		+	License (MIT)
