@@ -6,7 +6,7 @@
 		+	Autor: Roland Dreger
 		+	Datum: 9. Mai 2015
 		
-		+	Zuletzt aktualisiert: 17. August 2021
+		+	Zuletzt aktualisiert: 22. August 2021
 		
 
 		+	License (MIT)
@@ -148,8 +148,9 @@ function __measureXHeight(_ui, _xHeightValue, _warningIcon) {
 	var _doc;
 	var _selection;
 	var _targetIP;
-	var _targetIPFont;
-	var _targetIPPointSize;
+	var _targetFont;
+	var _targetFontName;
+	var _targetPointSize;
 	var _xHeight = 0;
 	var _xHeigthMM;
 	var _xHeigthPT;
@@ -177,19 +178,26 @@ function __measureXHeight(_ui, _xHeightValue, _warningIcon) {
 	}
 	
 	_argArray = [_doc.toSpecifier(), _targetIP.toSpecifier()];
-	_xHeight = app.doScript(__getXHeight, ScriptLanguage.JAVASCRIPT, _argArray, UndoModes.ENTIRE_SCRIPT, localize(_global.measureGoBackLabel));
-	if(!_xHeight) {
+	_xHeight = app.doScript(__measureFont, ScriptLanguage.JAVASCRIPT, _argArray, UndoModes.ENTIRE_SCRIPT, localize(_global.measureGoBackLabel));
+	if(!_xHeight || _xHeight.constructor !== Number) {
 		__displayErrorLabel(_ui, _xHeightValue);
 		return false;
 	}
 
-	_targetIPFont = _targetIP.properties.appliedFont;
-	_targetIPPointSize = _targetIP.properties.pointSize;
+	/* Avoid text wrapping changes */
+	if(_doc.undoName === localize(_global.measureGoBackLabel)) {
+		_doc.undo();
+	}
+	
+	_targetFont = _targetIP.properties.appliedFont;
+	_targetFontName = _targetFont.properties.name;
+	_targetPointSize = _targetIP.properties.pointSize;
 
-	_ui.text = _targetIPFont.name.replace("\\t", " | ", "g");
-	_ui.text += " | " + _targetIPPointSize.toFixed(1).replace("\\.0", "", "g") + " pt";
+	_ui.text = _targetFontName.replace("\\t", " | ", "g");
+	_ui.text += " | " + _targetPointSize.toFixed(1).replace("\\.0", "", "g") + " pt";
 	
 	_xHeigthPT = _xHeight.toFixed(2).replace("0+$", "", "g") + " pt";
+
 	_xHeigthMM = UnitValue(_xHeight, MeasurementUnits.POINTS).as(MeasurementUnits.MILLIMETERS);
 	_xHeigthMM = _xHeigthMM.toFixed(3).replace("[,.]?0+$", "", "g") + " mm";
 	
@@ -204,7 +212,7 @@ function __measureXHeight(_ui, _xHeightValue, _warningIcon) {
 	_warningIcon.helpTip = "";
 
 	/* Check: Font installed? */
-	if(!__isFontInstalled(_targetIPFont)) { 
+	if(!__isFontInstalled(_targetFont)) { 
 		_warningIcon.visible = true;
 		_warningIcon.helpTip = localize(_global.substituteFontHelpTip);
 	} 
@@ -222,50 +230,50 @@ function __measureXHeight(_ui, _xHeightValue, _warningIcon) {
 } /* END function __measureXHeight */
 
 
-function __getXHeight(_argArray) {
+function __measureFont(_argArray) {
 
-	if(!_argArray || !(_argArray instanceof Array) || _argArray.length !== 2) { return false; }
+	if(!_argArray || !(_argArray instanceof Array) || _argArray.length !== 2) { 
+		return false; 
+	}
 
+	var _userEnableRedraw;
 	var _doc;
 	var _targetIP;
-	var _appliedFont;
-	var _tempTextFrame;
-	var _tempStory;
 	var _xChar;
 	var _xPath;
 	var _anchorPointTopLeft;
 	var _anchorPointBottomLeft;
 	var _xHeight;
 
+	_userEnableRedraw = app.scriptPreferences.enableRedraw;
+	app.scriptPreferences.enableRedraw = false; /* Ansicht aktualisieren */
+
 	try {
 
 		_doc = resolve(_argArray[0]);
 		_targetIP = resolve(_argArray[1]);
 
-		_tempTextFrame = __createTextFrame(_doc);
-		if(!_tempTextFrame) { 
-			return false; 
+		if(!_doc || !(_doc instanceof Document) || !_doc.isValid) {
+			return false;
+		}
+		if(!_targetIP || !(_targetIP instanceof InsertionPoint) || !_targetIP.isValid) {
+			return false;
 		}
 
-		_tempStory = _tempTextFrame.parentStory;
-		_tempStory.clearOverrides(OverrideType.ALL);
-		_tempStory.insertionPoints[0].properties = _targetIP.properties;
-		_tempStory.insertionPoints[0].alignToBaseline = false;
-		_tempStory.insertionPoints[0].contents = "x";
-		
-		_xChar = _tempStory.characters.item(0);
+		var parentStory = _targetIP.parentStory;
+		if(!parentStory || !parentStory.isValid) {
+			return false;
+		}
 
-		__clearOverflow(_tempTextFrame);	
-		
-		_appliedFont = _targetIP.properties.appliedFont;
-		if((_tempTextFrame.contents === "") || __containsMissingGlyph(_appliedFont, _tempTextFrame) || _xChar.endHorizontalOffset === 0) {
+		/* Insert character x for measurement */
+		_targetIP.contents = "x";
+		_xChar = parentStory.characters.item(_targetIP.index);
+		if(!_xChar.isValid) {
 			return false;
 		}
 		
-		/* Convert x to Outlines for measuring */
+		/* Convert x character to Outlines */
 		_xPath = _xChar.createOutlines()[0];
-		
-		__clearOverflow(_tempTextFrame);
 		
 		_anchorPointTopLeft = _xPath.resolve(AnchorPoint.topLeftAnchor, CoordinateSpaces.parentCoordinates)[0];
 		_anchorPointBottomLeft = _xPath.resolve(AnchorPoint.bottomLeftAnchor, CoordinateSpaces.parentCoordinates)[0];
@@ -274,16 +282,17 @@ function __getXHeight(_argArray) {
 		_xHeight = Math.abs(_anchorPointBottomLeft[1] - _anchorPointTopLeft[1]);
 		
 	} catch(_error) {
-		alert(_error.message);
+		/* alert(_error.message); */
 		return false;
 	} finally {
-		if(_tempTextFrame && _tempTextFrame.hasOwnProperty("remove") && _tempTextFrame.isValid) {
-			_tempTextFrame.remove();
+		if(_xPath && _xPath.hasOwnProperty("remove") && _xPath.isValid) {
+			_xPath.remove();
 		}
+		app.scriptPreferences.enableRedraw = _userEnableRedraw;
 	}
 	
 	return _xHeight;
-} /* END function __getXHeight */
+} /* END function __measureFont */
 
 
 
@@ -450,25 +459,6 @@ function __containsMissingGlyph(_font, _frame) {
 } /* END function __containsMissingGlyph */
 
 
-function __clearOverflow(_textFrame) {
-	
-	if(!_textFrame || !(_textFrame instanceof TextFrame) || !_textFrame.isValid) { return false; }
-
-	var _geometricBoundsTextFrame;
-	var _stop = 0;
-	
-	while(_textFrame.overflows && _stop < 1000) {
-		_geometricBoundsTextFrame = _textFrame.geometricBounds;
-		_geometricBoundsTextFrame[2] += 10; 
-		_geometricBoundsTextFrame[3] += 10;
-		_textFrame.geometricBounds = _geometricBoundsTextFrame;
-		_stop += 1;
-	} 
-
-	return true;
-} /* END function __clearOverflow */
-
-
 function __isFontInstalled(_font) {
 	
 	if(!_font || (!(_font instanceof Font) && _font.constructor !== String)) { return false; }
@@ -507,21 +497,17 @@ function __isFontInstalled(_font) {
 } /* END function __isFontInstalled */
 
 
-function __isUnscaled(_insertionPoint, _prop) {
+function __isUnscaled(_targetIP, _prop) {
 	
-	if(!_insertionPoint || !(_insertionPoint instanceof InsertionPoint) || !_insertionPoint.isValid) { return false; }
+	if(!_targetIP || !(_targetIP instanceof InsertionPoint) || !_targetIP.isValid) { return false; }
 	if(!_prop || _prop.constructor !== String) { return false; }
 
-	const _scaleValue = 100;
-
-	var _parentTextFrame;
-
-	_parentTextFrame = _insertionPoint.parentTextFrames[0];
+	var _parentTextFrame = _targetIP.parentTextFrames[0];
 	if(!_parentTextFrame || !_parentTextFrame.hasOwnProperty(_prop) || !_parentTextFrame.isValid) {
 		return false;
 	}
 			
-	if(_parentTextFrame[_prop] !== _scaleValue) {
+	if(_parentTextFrame[_prop] !== 100) {
 		return false;
 	}	 
 	 
@@ -612,7 +598,7 @@ function __defineLocalizeStrings() {
 		en:".",
 		de:","
 	};
-	
+
 	_global.substituteFontHelpTip = {
 		en:"Substitute Font!",
 		de:"Ersetzte Schriftart!"
