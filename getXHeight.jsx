@@ -262,31 +262,32 @@ function __measureFont(_argArray) {
 		_targetIP = resolve(_argArray[1]);
 
 		if(!_doc || !(_doc instanceof Document) || !_doc.isValid) {
-			return false;
+			throw new Error("Error: " + localize(_global.objectInvalidErrorMessage, "Document"));
 		}
 		if(!_targetIP || !(_targetIP instanceof InsertionPoint) || !_targetIP.isValid) {
-			return false;
+			throw new Error("Error: " + localize(_global.objectInvalidErrorMessage, "Insertion Point"));
 		}
 
 		/* Check: Overflow? */
 		if(!_targetIP.properties.baseline) {
-			return false;
+			throw new Error("Error: " + localize(localize(_global.oversetErrorMessage)));
 		}
 
+		/* Check: Parent is cell or footnote? */
 		if(_targetIP.parent instanceof Footnote || _targetIP.parent instanceof Cell) {
 			_parentStory = _targetIP.parent;
 		} else {
 			_parentStory = _targetIP.parentStory;
 		}
 		if(!_parentStory || !_parentStory.isValid) {
-			return false;
+			throw new Error("Error: " + localize(localize(_global.invalidStoryErrorMessage)));
 		}
 
 		/* Insert character x for measurement */
 		_targetIP.contents = "x";
 		_xChar = _parentStory.characters.item(_targetIP.index);
 		if(!_xChar.isValid || _xChar.contents !== "x") {
-			return false;
+			throw new Error("Error: " + localize(_global.referenceCharacterErrorMessage));
 		}
 		
 		/* Convert x character to Outlines */
@@ -624,6 +625,26 @@ function __defineLocalizeStrings() {
 	_global.scaledTextframeHelpTip = {
 		en:"Scaled Text Frame!",
 		de:"Skalierter Textrahmen!"
+	};
+
+	_global.referenceCharacterErrorMessage = {
+		en:"Reference characters could not be inserted correctly.",
+		de:"Referenzzeichen konnten nicht korrekt eingefügt werden."
+	};
+
+	_global.oversetErrorMessage = {
+		en:"Measurement point in overset.",
+		de:"Messpunkt im Übersatz."
+	};
+
+	_global.invalidStoryErrorMessage = {
+		en:"Story not valid.",
+		de:"Textabschnitt nicht (mehr) valide."
+	};
+
+	_global.objectInvalidErrorMessage = {
+		en:"%1 not valid.",
+		de:"%1 nicht (mehr) valide."
 	};
 
 } /* END function __defineLocalizeStrings */
