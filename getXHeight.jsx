@@ -305,6 +305,9 @@ function __measureFont(_argArray) {
 	} finally {
 		if(_xPath && _xPath.hasOwnProperty("remove") && _xPath.isValid) {
 			_xPath.remove();
+		} 
+		else if(_xChar && _xChar.hasOwnProperty("remove") && _xChar.isValid) {
+			_xChar.remove();
 		}
 		app.scriptPreferences.enableRedraw = _userEnableRedraw;
 	}
