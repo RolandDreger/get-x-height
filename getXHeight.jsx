@@ -177,39 +177,17 @@ function __measureXHeight(_ui, _xHeightValue, _warningIcon) {
 		_targetIP = _selection.insertionPoints[0];
 	}
 	
-	_argArray = [_doc.toSpecifier(), _targetIP.toSpecifier()];
-	_xHeight = app.doScript(__measureFont, ScriptLanguage.JAVASCRIPT, _argArray, UndoModes.ENTIRE_SCRIPT, localize(_global.measureGoBackLabel));
-	if(!_xHeight || _xHeight.constructor !== Number) {
+	_warningIcon.visible = false;
+	_warningIcon.helpTip = "";
+
+	if(!_targetIP || !_targetIP.isValid) {
 		__displayErrorLabel(_ui, _xHeightValue);
 		return false;
 	}
 
-	/* Avoid text wrapping changes */
-	if(_doc.undoName === localize(_global.measureGoBackLabel)) {
-		_doc.undo();
-	}
-	
 	_targetFont = _targetIP.properties.appliedFont;
-	_targetFontName = _targetFont.properties.name;
+	_targetFontName = _targetFont.name;
 	_targetPointSize = _targetIP.properties.pointSize;
-
-	_ui.text = _targetFontName.replace("\\t", " | ", "g");
-	_ui.text += " | " + _targetPointSize.toFixed(1).replace("\\.0", "", "g") + " pt";
-	
-	_xHeigthPT = _xHeight.toFixed(2).replace("0+$", "", "g") + " pt";
-
-	_xHeigthMM = UnitValue(_xHeight, MeasurementUnits.POINTS).as(MeasurementUnits.MILLIMETERS);
-	_xHeigthMM = _xHeigthMM.toFixed(3).replace("[,.]?0+$", "", "g") + " mm";
-	
-	_xHeightValue.text = _xHeigthMM + "\u2003|\u2003" + _xHeigthPT;
-	
-	if($.locale == "de_DE") {
-		_ui.text = _ui.text.replace("\\.", ",", "g");
-		_xHeightValue.text = _xHeightValue.text.replace("\\.", ",", "g");
-	}
-
-	_warningIcon.visible = false;
-	_warningIcon.helpTip = "";
 
 	/* Check: Font installed? */
 	if(!__isFontInstalled(_targetFont)) { 
@@ -225,7 +203,36 @@ function __measureXHeight(_ui, _xHeightValue, _warningIcon) {
 		}
 		_warningIcon.helpTip += localize(_global.scaledTextframeHelpTip);
 	} 
+
+	/* Execute measurement */
+	_argArray = [_doc.toSpecifier(), _targetIP.toSpecifier()];
+	_xHeight = app.doScript(__measureFont, ScriptLanguage.JAVASCRIPT, _argArray, UndoModes.ENTIRE_SCRIPT, localize(_global.measureGoBackLabel));
+	if(!_xHeight || _xHeight.constructor !== Number) {
+		__displayErrorLabel(_ui, _xHeightValue);
+		_xHeight = 0;
+	}
+
+	/* Avoid text wrapping changes */
+	if(_doc.undoName === localize(_global.measureGoBackLabel)) {
+		_doc.undo();
+	}
 	
+	/* Fill script labels */
+	_ui.text = _targetFontName.replace("\\t", " | ", "g");
+	_ui.text += " | " + (Math.round(_targetPointSize * 100) / 100) + " pt";
+	
+	_xHeigthPT = (Math.round(_xHeight * 100) / 100) + " pt";
+
+	_xHeigthMM = UnitValue(_xHeight, MeasurementUnits.POINTS).as(MeasurementUnits.MILLIMETERS);
+	_xHeigthMM = (Math.round(_xHeigthMM * 1000) / 1000) + " mm";
+	
+	_xHeightValue.text = _xHeigthMM + "\u2003|\u2003" + _xHeigthPT;
+	
+	if($.locale == "de_DE") {
+		_ui.text = _ui.text.replace("\\.", ",", "g");
+		_xHeightValue.text = _xHeightValue.text.replace("\\.", ",", "g");
+	}
+
 	return true;
 } /* END function __measureXHeight */
 
@@ -239,6 +246,7 @@ function __measureFont(_argArray) {
 	var _userEnableRedraw;
 	var _doc;
 	var _targetIP;
+	var _parentStory;
 	var _xChar;
 	var _xPath;
 	var _anchorPointTopLeft;
@@ -260,15 +268,24 @@ function __measureFont(_argArray) {
 			return false;
 		}
 
-		var parentStory = _targetIP.parentStory;
-		if(!parentStory || !parentStory.isValid) {
+		/* Check: Overflow? */
+		if(!_targetIP.properties.baseline) {
+			return false;
+		}
+
+		if(_targetIP.parent instanceof Footnote || _targetIP.parent instanceof Cell) {
+			_parentStory = _targetIP.parent;
+		} else {
+			_parentStory = _targetIP.parentStory;
+		}
+		if(!_parentStory || !_parentStory.isValid) {
 			return false;
 		}
 
 		/* Insert character x for measurement */
 		_targetIP.contents = "x";
-		_xChar = parentStory.characters.item(_targetIP.index);
-		if(!_xChar.isValid) {
+		_xChar = _parentStory.characters.item(_targetIP.index);
+		if(!_xChar.isValid || _xChar.contents !== "x") {
 			return false;
 		}
 		
