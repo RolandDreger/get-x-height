@@ -551,8 +551,8 @@ function __defineIconsForUI() {
 function __defineLocalizeStrings() {
 	
 	_global.uiHeadLabel = {
-		en:"Get x-Height (v 2.1)",
-		de:"Get X-Height (v 2.1)"
+		en:"Get x-Height (v 3.0)",
+		de:"Get X-Height (v 3.0)"
 	};
 	
 	_global.measureGoBackLabel = { 
