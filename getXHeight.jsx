@@ -254,7 +254,7 @@ function __measureFont(_argArray) {
 	var _xHeight;
 
 	_userEnableRedraw = app.scriptPreferences.enableRedraw;
-	app.scriptPreferences.enableRedraw = false; /* Ansicht aktualisieren */
+	app.scriptPreferences.enableRedraw = false; /* Ansicht nicht aktualisieren */
 
 	try {
 
@@ -268,12 +268,12 @@ function __measureFont(_argArray) {
 			throw new Error("Error: " + localize(_global.objectInvalidErrorMessage, "Insertion Point"));
 		}
 
-		/* Check: Overflow? */
+		/* Check: Insertion point in text overflow? */
 		if(!_targetIP.properties.baseline) {
 			throw new Error("Error: " + localize(localize(_global.oversetErrorMessage)));
 		}
 
-		/* Check: Parent is cell or footnote? */
+		/* Switch: Parent is cell or footnote? */
 		if(_targetIP.parent instanceof Footnote || _targetIP.parent instanceof Cell) {
 			_parentStory = _targetIP.parent;
 		} else {
@@ -300,7 +300,7 @@ function __measureFont(_argArray) {
 		_xHeight = Math.abs(_anchorPointBottomLeft[1] - _anchorPointTopLeft[1]);
 		
 	} catch(_error) {
-		/* alert(_error.message); */
+		alert(_error.message);
 		return false;
 	} finally {
 		if(_xPath && _xPath.hasOwnProperty("remove") && _xPath.isValid) {
