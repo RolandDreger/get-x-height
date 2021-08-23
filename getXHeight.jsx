@@ -6,7 +6,7 @@
 		+	Autor: Roland Dreger
 		+	Datum: 9. Mai 2015
 		
-		+	Zuletzt aktualisiert: 22. August 2021
+		+	Zuletzt aktualisiert: 23. August 2021
 		
 
 		+	License (MIT)
@@ -71,7 +71,7 @@ function __showUI() {
 				var _xHeightValue = add("statictext");
 				with(_xHeightValue) {
 					text = "0" + localize(_global.decimalMark) + "000 mm" + "\u2002|\u2002" + "0" + localize(_global.decimalMark) + "00 pt";
-					characters = 19;
+					characters = 22;
 				} /* END _xHeightValue */ 
 				try { 
 					var _warningIcon = add("image", undefined, _icons.warning);
@@ -112,6 +112,7 @@ function __showUI() {
 	/* Callbacks */
 	_measureButton.onClick = function() {
 		__measureXHeight(_ui, _xHeightValue, _warningIcon);
+
 	};
 	
 	_copyButton.onClick = function() {
@@ -219,9 +220,9 @@ function __measureXHeight(_ui, _xHeightValue, _warningIcon) {
 	
 	/* Fill script labels */
 	_ui.text = _targetFontName.replace("\\t", " | ", "g");
-	_ui.text += " | " + (Math.round(_targetPointSize * 100) / 100) + " pt";
+	_ui.text += " | " + (Math.round(_targetPointSize * 1000) / 1000) + " pt";
 	
-	_xHeigthPT = (Math.round(_xHeight * 100) / 100) + " pt";
+	_xHeigthPT = (Math.round(_xHeight * 1000) / 1000) + " pt";
 
 	_xHeigthMM = UnitValue(_xHeight, MeasurementUnits.POINTS).as(MeasurementUnits.MILLIMETERS);
 	_xHeigthMM = (Math.round(_xHeigthMM * 1000) / 1000) + " mm";
