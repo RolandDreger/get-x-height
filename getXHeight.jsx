@@ -166,8 +166,8 @@ function __measureXHeight(_ui, _xHeightValue, _warningIcon) {
 		return false;
 	}
 	
-	_selection = app.properties.selection && app.selection[0];
-	if(!_selection || app.selection.length !== 1 || !app.selection[0].hasOwnProperty("insertionPoints")) {
+	_selection = app.properties.selection && app.selection.length === 1 && app.selection[0];
+	if(!_selection || !_selection.hasOwnProperty("insertionPoints")) {
 		alert(localize(_global.noInsertionPointAlert)); 
 		return false;
 	}
@@ -483,7 +483,7 @@ function __containsMissingGlyph(_font, _frame) {
 
 function __isFontInstalled(_font) {
 	
-	if(!_font || (!(_font instanceof Font) && _font.constructor !== String)) { return false; }
+	if(!_font || !(_font instanceof Font) || !_font.isValid) { return false; }
 
 	const _statusValue = FontStatus.INSTALLED;
 
