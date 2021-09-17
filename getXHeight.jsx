@@ -6,12 +6,12 @@
 		+	Autor: Roland Dreger
 		+	Datum: 9. Mai 2015
 		
-		+	Zuletzt aktualisiert: 23. April 2020
+		+	Zuletzt aktualisiert: 23. August 2021
 		
 
 		+	License (MIT)
 
-			Copyright 2020 Roland Dreger
+			Copyright 2021 Roland Dreger
 
 			Permission is hereby granted, free of charge, to any person obtaining 
 			a copy of this software and associated documentation files (the "Software"), 
@@ -71,7 +71,7 @@ function __showUI() {
 				var _xHeightValue = add("statictext");
 				with(_xHeightValue) {
 					text = "0" + localize(_global.decimalMark) + "000 mm" + "\u2002|\u2002" + "0" + localize(_global.decimalMark) + "00 pt";
-					characters = 19;
+					characters = 22;
 				} /* END _xHeightValue */ 
 				try { 
 					var _warningIcon = add("image", undefined, _icons.warning);
@@ -112,6 +112,7 @@ function __showUI() {
 	/* Callbacks */
 	_measureButton.onClick = function() {
 		__measureXHeight(_ui, _xHeightValue, _warningIcon);
+
 	};
 	
 	_copyButton.onClick = function() {
@@ -148,27 +149,25 @@ function __measureXHeight(_ui, _xHeightValue, _warningIcon) {
 	var _doc;
 	var _selection;
 	var _targetIP;
-	var _appliedFont;
-	var _pointSize;
-	var _verticalScale;
-	var _tempTextFrame;
-	var _tempStory;
-	var _xChar;
-	var _xPath;
-	var _anchorPointTopLeft;
-	var _anchorPointBottomLeft;
+	var _targetFont;
+	var _targetFontName;
+	var _targetPointSize;
 	var _xHeight = 0;
 	var _xHeigthMM;
 	var _xHeigthPT;
+	var _argArray = [];
 
+	if(app.documents.length === 0 || app.layoutWindows.length === 0) {
+		return false; 
+	}
 
 	_doc = app.documents.firstItem();
 	if(!_doc.isValid) {
 		return false;
 	}
 	
-	_selection = app.properties.selection && app.selection[0];
-	if(!_selection || app.selection.length !== 1 || !app.selection[0].hasOwnProperty("insertionPoints")) {
+	_selection = app.properties.selection && app.selection.length === 1 && app.selection[0];
+	if(!_selection || !_selection.hasOwnProperty("insertionPoints")) {
 		alert(localize(_global.noInsertionPointAlert)); 
 		return false;
 	}
@@ -178,81 +177,21 @@ function __measureXHeight(_ui, _xHeightValue, _warningIcon) {
 	} else {
 		_targetIP = _selection.insertionPoints[0];
 	}
-
-	_tempTextFrame = __createTextFrame(_doc);
-	if(!_tempTextFrame) { 
-		return false; 
-	}
-
-	_tempStory = _tempTextFrame.parentStory;
-	_tempStory.insertionPoints[0].alignToBaseline = false;
-	_tempStory.insertionPoints[0].contents = "x";
 	
-	_xChar = _tempStory.characters.item(0);
-	
-	_appliedFont = _targetIP.appliedFont;
-	_pointSize = _targetIP.pointSize;
-	_verticalScale = _targetIP.verticalScale;
-	
-	if(!_xChar.isValid || !_appliedFont || !_appliedFont.isValid) {
-		_tempTextFrame.remove();
-		__displayErrorLabel(_ui, _xHeightValue);
-		return false;
-	}
-
-	_xChar.appliedFont = _appliedFont;
-	_xChar.pointSize = _pointSize;
-	_xChar.verticalScale = _verticalScale;
-	
-	__clearOverset(_tempTextFrame);	
-	
-	if((_tempTextFrame.contents === "") || __containsMissingGlyph(_appliedFont, _tempTextFrame) || _xChar.endHorizontalOffset === 0) {
-		_tempTextFrame.remove();
-		__displayErrorLabel(_ui, _xHeightValue);
-		return false;
-	}
-	
-	/* Convert x to Outlines for measuring */
-	try {
-		_xPath = _xChar.createOutlines()[0];
-	} catch(_error) {
-		_xPath = undefined;
-	}
-	
-	if(!_xPath || !_xPath.isValid) {
-		_tempTextFrame.remove();
-		__displayErrorLabel(_ui, _xHeightValue);
-		return false;
-	}
-	
-	__clearOverset(_tempTextFrame);
-	
-	_anchorPointTopLeft = _xPath.resolve(AnchorPoint.topLeftAnchor, CoordinateSpaces.parentCoordinates)[0];
-	_anchorPointBottomLeft = _xPath.resolve(AnchorPoint.bottomLeftAnchor, CoordinateSpaces.parentCoordinates)[0];
-	
-	_tempTextFrame.remove();
-	
-	_ui.text = _appliedFont.name.replace("\\t", " | ", "g");
-	_ui.text += " | " + _pointSize.toFixed(1).replace("\\.0", "", "g") + " pt";
-	
-	/* Calculate x-height */
-	_xHeight = Math.abs(_anchorPointBottomLeft[1] - _anchorPointTopLeft[1]);
-	_xHeigthPT = _xHeight.toFixed(2).replace("0+$", "", "g") + " pt";
-	_xHeigthMM = UnitValue(_xHeight, MeasurementUnits.POINTS).as(MeasurementUnits.MILLIMETERS);
-	_xHeigthMM = _xHeigthMM.toFixed(3).replace("[,.]?0+$", "", "g") + " mm";
-	
-	_xHeightValue.text = _xHeigthMM + "\u2003|\u2003" + _xHeigthPT;
-	
-	if($.locale == "de_DE") {
-		_ui.text = _ui.text.replace("\\.", ",", "g");
-		_xHeightValue.text = _xHeightValue.text.replace("\\.", ",", "g");
-	}
-
 	_warningIcon.visible = false;
 	_warningIcon.helpTip = "";
 
+	if(!_targetIP || !_targetIP.isValid) {
+		__displayErrorLabel(_ui, _xHeightValue);
+		return false;
+	}
+
+	_targetFont = _targetIP.properties.appliedFont;
+	_targetFontName = _targetFont.name;
+	_targetPointSize = _targetIP.properties.pointSize;
+
 	/* Check: Font installed? */
-	if(!__isFontInstalled(_appliedFont)) { 
+	if(!__isFontInstalled(_targetFont)) { 
 		_warningIcon.visible = true;
 		_warningIcon.helpTip = localize(_global.substituteFontHelpTip);
 	} 
@@ -265,23 +204,153 @@ function __measureXHeight(_ui, _xHeightValue, _warningIcon) {
 		}
 		_warningIcon.helpTip += localize(_global.scaledTextframeHelpTip);
 	} 
+
+	/* Execute measurement */
+	_argArray = [_doc.toSpecifier(), _targetIP.toSpecifier()];
+	_xHeight = app.doScript(__measureFont, ScriptLanguage.JAVASCRIPT, _argArray, UndoModes.ENTIRE_SCRIPT, localize(_global.measureGoBackLabel));
+	if(!_xHeight || _xHeight.constructor !== Number) {
+		__displayErrorLabel(_ui, _xHeightValue);
+		_xHeight = 0;
+	}
+
+	/* Avoid text wrapping changes */
+	if(_doc.undoName === localize(_global.measureGoBackLabel)) {
+		_doc.undo();
+	}
 	
+	/* Fill script labels */
+	_ui.text = _targetFontName.replace("\\t", " | ", "g");
+	_ui.text += " | " + (Math.round(_targetPointSize * 1000) / 1000) + " pt";
+	
+	_xHeigthPT = (Math.round(_xHeight * 1000) / 1000) + " pt";
+
+	_xHeigthMM = UnitValue(_xHeight, MeasurementUnits.POINTS).as(MeasurementUnits.MILLIMETERS);
+	_xHeigthMM = (Math.round(_xHeigthMM * 1000) / 1000) + " mm";
+	
+	_xHeightValue.text = _xHeigthMM + "\u2003|\u2003" + _xHeigthPT;
+	
+	if($.locale == "de_DE") {
+		_ui.text = _ui.text.replace("\\.", ",", "g");
+		_xHeightValue.text = _xHeightValue.text.replace("\\.", ",", "g");
+	}
+
 	return true;
 } /* END function __measureXHeight */
+
+
+function __measureFont(_argArray) {
+
+	if(!_argArray || !(_argArray instanceof Array) || _argArray.length !== 2) { 
+		return false; 
+	}
+
+	var _userEnableRedraw;
+	var _doc;
+	var _targetIP;
+	var _parentStory;
+	var _xChar;
+	var _xPath;
+	var _anchorPointTopLeft;
+	var _anchorPointBottomLeft;
+	var _xHeight;
+
+	_userEnableRedraw = app.scriptPreferences.enableRedraw;
+	app.scriptPreferences.enableRedraw = false; /* Ansicht nicht aktualisieren */
+
+	try {
+
+		_doc = resolve(_argArray[0]);
+		_targetIP = resolve(_argArray[1]);
+
+		if(!_doc || !(_doc instanceof Document) || !_doc.isValid) {
+			throw new Error("Error: " + localize(_global.objectInvalidErrorMessage, "Document"));
+		}
+		if(!_targetIP || !(_targetIP instanceof InsertionPoint) || !_targetIP.isValid) {
+			throw new Error("Error: " + localize(_global.objectInvalidErrorMessage, "Insertion Point"));
+		}
+
+		/* Check: Insertion point in text overflow? */
+		if(!_targetIP.properties.baseline) {
+			throw new Error("Error: " + localize(localize(_global.oversetErrorMessage)));
+		}
+
+		/* Switch: Parent is cell or footnote? */
+		if(_targetIP.parent instanceof Footnote || _targetIP.parent instanceof Cell) {
+			_parentStory = _targetIP.parent;
+		} else {
+			_parentStory = _targetIP.parentStory;
+		}
+		if(!_parentStory || !_parentStory.isValid) {
+			throw new Error("Error: " + localize(localize(_global.invalidStoryErrorMessage)));
+		}
+
+		/* Insert character x for measurement */
+		_targetIP.contents = "x";
+		_xChar = _parentStory.characters.item(_targetIP.index);
+		if(!_xChar.isValid || _xChar.contents !== "x") {
+			throw new Error("Error: " + localize(_global.referenceCharacterErrorMessage));
+		}
+		
+		/* Convert x character to Outlines */
+		_xPath = _xChar.createOutlines()[0];
+		
+		_anchorPointTopLeft = _xPath.resolve(AnchorPoint.topLeftAnchor, CoordinateSpaces.parentCoordinates)[0];
+		_anchorPointBottomLeft = _xPath.resolve(AnchorPoint.bottomLeftAnchor, CoordinateSpaces.parentCoordinates)[0];
+		
+		/* Calculate x-height */
+		_xHeight = Math.abs(_anchorPointBottomLeft[1] - _anchorPointTopLeft[1]);
+		
+	} catch(_error) {
+		alert(_error.message);
+		return false;
+	} finally {
+		if(_xPath && _xPath.hasOwnProperty("remove") && _xPath.isValid) {
+			_xPath.remove();
+		} 
+		else if(_xChar && _xChar.hasOwnProperty("remove") && _xChar.isValid) {
+			_xChar.remove();
+		}
+		app.scriptPreferences.enableRedraw = _userEnableRedraw;
+	}
+	
+	return _xHeight;
+} /* END function __measureFont */
 
 
 
 /* +++++++++++++++++++++++ */
 /* + Copy x-height value + */
 /* +++++++++++++++++++++++ */
-function __copyXHeightValue(_xHeightValue) {
+function __copyXHeightValue(_xHeightStatictext) {
 	
-	if(!_xHeightValue || !(_xHeightValue instanceof StaticText)) { return false; }
-	
+	if(!_xHeightStatictext || !(_xHeightStatictext instanceof StaticText)) { return false; }
+
+	var _xHeightValue = _xHeightStatictext.text.replace("(mm).+$","$1","i");
+
+	app.doScript(
+		__pushValueToClipboard, 
+		ScriptLanguage.JAVASCRIPT, 
+		[_xHeightValue], 
+		UndoModes.ENTIRE_SCRIPT, 
+		localize(_global.copyGoBackLabel)
+	);
+
+	return true;
+} /* END function __copyXHeightValue */
+
+function __pushValueToClipboard(_argArray) {
+
+	if(!_argArray || !(_argArray instanceof Array) || _argArray.length !== 1) { return false; }
+
 	var _doc;
 	var _tempTextFrame;
 	var _tempStory;
 	var _texts;
+	var _xHeightValue;
+
+	if(app.documents.length === 0 || app.layoutWindows.length === 0) {
+		return false; 
+	}
 
 	_doc = app.documents.firstItem();
 	if(!_doc.isValid) {
@@ -292,24 +361,27 @@ function __copyXHeightValue(_xHeightValue) {
 	if(!_tempTextFrame) { 
 		return false; 
 	}
+
+	_xHeightValue = _argArray[0];
 	
 	try {
 		_tempStory = _tempTextFrame.parentStory;
 		_tempStory.insertionPoints[0].alignToBaseline = false;
-		_tempStory.insertionPoints[0].contents = _xHeightValue.text.replace("(mm).+$","$1","i");
+		_tempStory.insertionPoints[0].contents = _xHeightValue;
 		_texts = _tempStory.texts.everyItem();
 		_doc.select(_texts);
 		app.copy();
 	} catch(_error) {
 		alert(_error.message);
+		return false;
 	} finally {
 		if(_tempTextFrame && _tempTextFrame.hasOwnProperty("remove") && _tempTextFrame.isValid) {
 			_tempTextFrame.remove();
 		}
 	}
-	
+
 	return true;
-} /* END function __copyXHeightValue */
+} /* END function __pushValueToClipboard */
 
 
 function __displayErrorLabel(_ui, _xHeightValue) {
@@ -409,28 +481,9 @@ function __containsMissingGlyph(_font, _frame) {
 } /* END function __containsMissingGlyph */
 
 
-function __clearOverset(_textFrame) {
-	
-	if(!_textFrame || !(_textFrame instanceof TextFrame) || !_textFrame.isValid) { return false; }
-
-	var _geometricBoundsTextFrame;
-	var _stop = 0;
-	
-	while(_textFrame.overflows && _stop < 1000) {
-		_geometricBoundsTextFrame = _textFrame.geometricBounds;
-		_geometricBoundsTextFrame[2] += 10; 
-		_geometricBoundsTextFrame[3] += 10;
-		_textFrame.geometricBounds = _geometricBoundsTextFrame;
-		_stop += 1;
-	} 
-
-	return true;
-} /* END function __clearOverset */
-
-
 function __isFontInstalled(_font) {
 	
-	if(!_font || (!(_font instanceof Font) && _font.constructor !== String)) { return false; }
+	if(!_font || !(_font instanceof Font) || !_font.isValid) { return false; }
 
 	const _statusValue = FontStatus.INSTALLED;
 
@@ -466,21 +519,17 @@ function __isFontInstalled(_font) {
 } /* END function __isFontInstalled */
 
 
-function __isUnscaled(_insertionPoint, _prop) {
+function __isUnscaled(_targetIP, _prop) {
 	
-	if(!_insertionPoint || !(_insertionPoint instanceof InsertionPoint) || !_insertionPoint.isValid) { return false; }
+	if(!_targetIP || !(_targetIP instanceof InsertionPoint) || !_targetIP.isValid) { return false; }
 	if(!_prop || _prop.constructor !== String) { return false; }
 
-	const _scaleValue = 100;
-
-	var _parentTextFrame;
-
-	_parentTextFrame = _insertionPoint.parentTextFrames[0];
+	var _parentTextFrame = _targetIP.parentTextFrames[0];
 	if(!_parentTextFrame || !_parentTextFrame.hasOwnProperty(_prop) || !_parentTextFrame.isValid) {
 		return false;
 	}
 			
-	if(_parentTextFrame[_prop] !== _scaleValue) {
+	if(_parentTextFrame[_prop] !== 100) {
 		return false;
 	}	 
 	 
@@ -503,8 +552,18 @@ function __defineIconsForUI() {
 function __defineLocalizeStrings() {
 	
 	_global.uiHeadLabel = {
-		en:"Get x-Height (v 2.0)",
-		de:"Get X-Height (v 2.0)"
+		en:"Get x-Height (v 3.0)",
+		de:"Get X-Height (v 3.0)"
+	};
+	
+	_global.measureGoBackLabel = { 
+		en:"Measure x-height",
+		de:"x-Höhe messen" 
+	};
+	
+	_global.copyGoBackLabel = { 
+		en:"Copy x-height",
+		de:"x-Höhe kopieren" 
 	};
 	
 	_global.measureLabel = {
@@ -561,7 +620,7 @@ function __defineLocalizeStrings() {
 		en:".",
 		de:","
 	};
-	
+
 	_global.substituteFontHelpTip = {
 		en:"Substitute Font!",
 		de:"Ersetzte Schriftart!"
@@ -570,6 +629,26 @@ function __defineLocalizeStrings() {
 	_global.scaledTextframeHelpTip = {
 		en:"Scaled Text Frame!",
 		de:"Skalierter Textrahmen!"
+	};
+
+	_global.referenceCharacterErrorMessage = {
+		en:"Reference characters could not be inserted correctly.",
+		de:"Referenzzeichen konnten nicht korrekt eingefügt werden."
+	};
+
+	_global.oversetErrorMessage = {
+		en:"Measurement point in overset.",
+		de:"Messpunkt im Übersatz."
+	};
+
+	_global.invalidStoryErrorMessage = {
+		en:"Story not valid.",
+		de:"Textabschnitt nicht (mehr) valide."
+	};
+
+	_global.objectInvalidErrorMessage = {
+		en:"%1 not valid.",
+		de:"%1 nicht (mehr) valide."
 	};
 
 } /* END function __defineLocalizeStrings */
